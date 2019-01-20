@@ -48,7 +48,7 @@ public class PController implements UltrasonicController {
 		}
 
 		int error = this.distance - bandCenter;
-		int gain = Math.abs(error) * 5;
+		int gain = Math.abs(error) * 3;
 		if (Math.abs(error) <= bandWidth) {
 			WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED); // Start robot moving forward
 			WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED);
