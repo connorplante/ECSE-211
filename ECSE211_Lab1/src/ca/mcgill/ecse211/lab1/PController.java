@@ -2,17 +2,29 @@ package ca.mcgill.ecse211.lab1;
 
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 
+/**
+ * Controller for the Proportional implementation of the wall follower 
+ * that changes motor speeds by a calculated value based on the distance read and the error observed. 
+ * @author connorplante
+ *
+ */
 public class PController implements UltrasonicController {
 
 	/* Constants */
 	private static final int MOTOR_SPEED = 200;
-	private static final int FILTER_OUT = 25;
+	private static final int FILTER_OUT = 20;
 
 	private final int bandCenter;
 	private final int bandWidth;
 	private int distance;
 	private int filterControl;
 
+	/**
+	 * Constructor that initializes band variables and filter counter and sets motor speeds to begin 
+	 * moving the robot forward. 
+	 * @param bandCenter
+	 * @param bandwidth
+	 */
 	public PController(int bandCenter, int bandwidth) {
 		this.bandCenter = bandCenter;
 		this.bandWidth = bandwidth;
@@ -24,6 +36,12 @@ public class PController implements UltrasonicController {
 		WallFollowingLab.rightMotor.forward();
 	}
 
+	/**
+	 * Method that takes in data from the US sensor and uses said distance to 
+	 * calculate the gain. The gain is then used to change motor speeds in 
+	 * order to correct distance from wall.
+	 * @param distance
+	 */
 	@Override
 	public void processUSData(int distance) {
 
@@ -48,10 +66,10 @@ public class PController implements UltrasonicController {
 		}
 
 		int error = this.distance - bandCenter;
-		int gain = Math.abs(error) * 3;
+		int gain = calculateGain(error);
 		if (Math.abs(error) <= bandWidth) {
 			WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED); // Start robot moving forward
-			WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED);
+			WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED-40);
 			WallFollowingLab.leftMotor.forward();
 			WallFollowingLab.rightMotor.forward();
 
@@ -62,7 +80,7 @@ public class PController implements UltrasonicController {
 			WallFollowingLab.rightMotor.backward();
 
 		} else if (error > 0) {
-			WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED - gain/2); // too far away
+			WallFollowingLab.leftMotor.setSpeed(MOTOR_SPEED - gain+40); // too far away
 			WallFollowingLab.rightMotor.setSpeed(MOTOR_SPEED);
 			WallFollowingLab.leftMotor.forward();
 			WallFollowingLab.rightMotor.forward();
@@ -73,6 +91,17 @@ public class PController implements UltrasonicController {
 			WallFollowingLab.leftMotor.forward();
 			WallFollowingLab.rightMotor.forward();
 		}
+	}
+	
+	private int calculateGain(int error) {
+		
+		int gain = Math.abs(error) * 5; 
+		
+		if (gain > 200) {
+			gain = 100;
+		}
+		
+		return gain; 
 	}
 
 	@Override
