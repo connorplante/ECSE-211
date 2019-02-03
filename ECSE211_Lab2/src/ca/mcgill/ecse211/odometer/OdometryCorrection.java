@@ -69,7 +69,6 @@ public class OdometryCorrection implements Runnable {
 					} else {
 						odometer.setY(TILE_SIZE * lineCount + firstVal);
 					}
-					
 				} else {
 					firstVal = odoData[1] - SENSOR_OFFSET;
 				}
