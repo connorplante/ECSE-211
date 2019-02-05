@@ -5,13 +5,18 @@ import lejos.hardware.motor.EV3LargeRegulatedMotor;
 public class NavigationObstacle extends Thread implements UltrasonicController {
 	private int distance;
 	private int filterControl;
-	private static final int FILTER_OUT = 10;
+	private static final int FILTER_OUT = 5;
 	private static final int FORWARD_SPEED = 150;
 	private static final double TILE_LENGTH = 30.48;
 	private EV3LargeRegulatedMotor leftMotor, rightMotor;
 	private Odometer odometer;
+	private double prevX; 
+	private double prevY;
 	private static double[] odoCurrent = new double[3];
-	private static boolean flag = false;
+	private static final int DISTANCE_THRESH = 20;
+	private static final int CHECK_THRESH = 35;
+	private static final double CORRECTION_L = 30;
+	
 	
 	private static final double[][] MAP = { { 0.0, 2.0 }, { 1.0, 1.0 }, 
 			{ 2.0, 2.0 }, { 2.0, 1.0 }, { 1.0, 0.0 } };
@@ -26,18 +31,14 @@ public class NavigationObstacle extends Thread implements UltrasonicController {
 	public void processUSData(int distance) {
 		//System.out.println(distance);
 		
-		if (distance <= 30 && filterControl > FILTER_OUT) {
-			flag = true;
-			navigateObstacle();
-			//System.out.println(flag);
-		} else if (distance <= 30) {
-			// We have repeated large values, so there must actually be nothing
-			// there: leave the distance alone
-			filterControl++;
+		if (distance <= DISTANCE_THRESH && filterControl > FILTER_OUT) {
 			this.distance = distance;
+		} else if (distance <= DISTANCE_THRESH) {
+			// We have repeated small values, so there might be an obstacle present
+			// leave the distance alone until the obstacle presence is confirmed
+			filterControl++;
 		} else {
-			// distance went above 30: reset filter and leave
-			// distance alone.
+			// distance went above 30: reset filter and update the distance
 			filterControl = 0;
 			this.distance = distance;
 		}
@@ -58,6 +59,10 @@ public class NavigationObstacle extends Thread implements UltrasonicController {
 	
 	public void travelTo(double x, double y) {
 		odoCurrent = odometer.getXYT();
+		boolean flag = false;
+		if (x == 0 && y == 2 && prevX == 2 && prevY == 2) {
+			flag = true;
+		}
 		
 		double dX = (x * TILE_LENGTH) - odoCurrent[0];
 		double dY = (y * TILE_LENGTH) - odoCurrent[1];
@@ -68,15 +73,21 @@ public class NavigationObstacle extends Thread implements UltrasonicController {
 		double distance = Math.hypot(dX, dY);
 
 		leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, distance), true);
-		rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, distance), false);
+		rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, distance), true);
+
+		while (isNavigating()) {
+			if (this.distance <= DISTANCE_THRESH) {
+				leftMotor.stop(true);
+				rightMotor.stop(false);
+				
+				navigateObstacle(flag);
+				
+				travelTo(x, y);
+			}
+		}
 		
-//		while (isNavigating()) {
-//			if (flag) {
-//				leftMotor.stop(true);
-//				rightMotor.stop(true);
-//				navigateObstacle();
-//			}
-//		}
+		prevX = x; 
+		prevY = y;
 
 		leftMotor.stop(true);
 		rightMotor.stop(true);
@@ -110,28 +121,46 @@ public class NavigationObstacle extends Thread implements UltrasonicController {
 		return false;
 	}
 	
-	public void navigateObstacle() {
-		leftMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
-	    rightMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
-	    System.out.print("hit1");
-	    leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 20.0), true);
-	    rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 20.0), false);
+	public void navigateObstacle(boolean flag) {
+		int switcher = 1;
+		if (flag) {
+			switcher = -1;
+		}
+		
+		while (this.distance <= CHECK_THRESH) {
+			leftMotor.rotate(switcher * convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
+			rightMotor.rotate(switcher * -convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
+		
+			System.out.print("hit1");
+			leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, CORRECTION_L), true); // >
+			rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, CORRECTION_L), false);
+	
+			leftMotor.rotate(switcher * -convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
+			rightMotor.rotate(switcher * convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
+			System.out.print("hit2");
+		}
 	    
-	    leftMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
-	    rightMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
-	    System.out.print("hit2");
-	    leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 20.0), true);
-	    rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 20.0), false);
+	    leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, CORRECTION_L + 15), true); // ^
+	    rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, CORRECTION_L + 15), false);
 	    
-	    leftMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
-	    rightMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
-	    System.out.print("hit3");
-	    leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 20.0), true);
-	    rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, 20.0), false);
+//	    leftMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
+//	    rightMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
+//	    
+//	    if (this.distance <= CHECK_THRESH) {
+//	    	while (this.distance <= CHECK_THRESH)
+//	    	leftMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
+//			rightMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
+//			
+//			leftMotor.rotate(convertDistance(Lab3.WHEEL_RAD, CORRECTION_L / 2), true); // ^
+//		    rightMotor.rotate(convertDistance(Lab3.WHEEL_RAD, CORRECTION_L / 2), false);
+//		    
+//		    leftMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
+//		    rightMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
+//	    }
+//	    System.out.print("hit3");
 	    
-	    leftMotor.rotate(convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), true);
-	    rightMotor.rotate(-convertAngle(Lab3.WHEEL_RAD, Lab3.TRACK, 90.0), false);
-	    System.out.print("hit4");
+	    leftMotor.stop(true);
+		rightMotor.stop(true);
 	}
 	
 	private static int convertDistance(double radius, double distance) {

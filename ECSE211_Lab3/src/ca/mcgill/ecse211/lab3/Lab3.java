@@ -12,13 +12,13 @@ import lejos.robotics.SampleProvider;
 public class Lab3 {
 
 	// Motor Objects, and Robot related parameters
-	private static final EV3LargeRegulatedMotor leftMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort("A"));
-	private static final EV3LargeRegulatedMotor rightMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort("B"));
+	private static final EV3LargeRegulatedMotor leftMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort("D"));
+	private static final EV3LargeRegulatedMotor rightMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort("A"));
 	private static final Port usPort = LocalEV3.get().getPort("S1");
 	
 	private static final TextLCD lcd = LocalEV3.get().getTextLCD();
 	public static final double WHEEL_RAD = 2.2; // 2.2
-	public static final double TRACK = 16.0; // 11.5 - 12.0
+	public static final double TRACK = 11.95; // 11.7
 
 	public static void main(String[] args) throws OdometerExceptions, InterruptedException {
 
@@ -70,8 +70,8 @@ public class Lab3 {
 			odoDisplayThread.start();
 			Thread pollThread = new Thread(poller);
 			pollThread.start();
-			Thread navRegThread = new Thread(navReg);
-			navRegThread.start();
+			Thread navObstThread = new Thread(navObst);
+			navObst.start();
 
 		}
 
