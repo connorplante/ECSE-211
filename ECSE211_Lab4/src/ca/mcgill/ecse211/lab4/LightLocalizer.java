@@ -136,7 +136,7 @@ public class LightLocalizer implements Runnable {
 		odometer.setX(x);
 		odometer.setY(y);
 		
-		double dTheta = 540 - y2 + (thetaY / 2.0);
+		double dTheta = 270 - y2 + (thetaY / 2.0);
 		
 		odometer.setTheta(odometer.getXYT()[2]+dTheta);
 		
