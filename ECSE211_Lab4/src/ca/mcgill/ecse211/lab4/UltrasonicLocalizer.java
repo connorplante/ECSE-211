@@ -6,7 +6,7 @@ import lejos.hardware.motor.EV3LargeRegulatedMotor;
 public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 	private int distance;
 	private Odometer odometer;
-	private EV3LargeRegulatedMotor leftMotor, rightMotor;
+	private static EV3LargeRegulatedMotor leftMotor, rightMotor;
 	private boolean flag;
 	private double alpha;
 	private double beta; 
@@ -45,7 +45,7 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 //				continue;
 //			} 
 			if (this.distance < D_FALLING-K) {
-				System.out.println(this.distance);
+				//System.out.println(this.distance);
 				leftMotor.stop(true);
 				rightMotor.stop(false);
 				Sound.beep();
@@ -69,7 +69,7 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 //				continue;
 //			} 
 			if (this.distance < D_FALLING-K) {
-				System.out.println(this.distance);
+				//System.out.println(this.distance);
 				leftMotor.stop(true);
 				rightMotor.stop(false);
 				Sound.beep();
@@ -99,7 +99,7 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 //						continue;
 //					} 
 			if (this.distance > D_RISING - K) {
-				System.out.println(this.distance);
+			//	System.out.println(this.distance);
 				leftMotor.stop(true);
 				rightMotor.stop(false);
 				Sound.beep();
@@ -123,7 +123,7 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 //						continue;
 //					} 
 			if (this.distance > D_RISING - K) {
-				System.out.println(this.distance);
+				//System.out.println(this.distance);
 				leftMotor.stop(true);
 				rightMotor.stop(false);
 				Sound.beep();
@@ -186,7 +186,7 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 	 * 
 	 * @return boolean 
 	 */
-	public boolean isNavigating() {
+	public static boolean isNavigating() {
 		if (leftMotor.isMoving() || rightMotor.isMoving()) {
 			return true;
 		}

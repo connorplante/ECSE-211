@@ -15,12 +15,12 @@ public class Lab4 {
 	private static final EV3LargeRegulatedMotor leftMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort("A"));
 	private static final EV3LargeRegulatedMotor rightMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort("D"));
 	private static final Port usPort = LocalEV3.get().getPort("S1");
-	private static final Port lsPort = LocalEV3.get().getPort("S2");
 	
 	private static final TextLCD lcd = LocalEV3.get().getTextLCD();
 	public static final double WHEEL_RAD = 2.2; // 2.2
-	public static final double TRACK = 12.25; // 
-	public static final int ROTATE_SPEED = 100;
+	public static final double TRACK = 12.6; // 
+	public static final int ROTATE_SPEED = 60;
+	public static final int ACCELERATION = 1000;
 
 	public static void main(String[] args) throws OdometerExceptions, InterruptedException {
 
@@ -30,6 +30,7 @@ public class Lab4 {
 		Odometer odometer = Odometer.getOdometer(leftMotor, rightMotor, TRACK, WHEEL_RAD);
 		Display odometryDisplay = new Display(lcd); // No need to change
 		UltrasonicLocalizer usLocalizer = new UltrasonicLocalizer(leftMotor, rightMotor, odometer);
+		LightLocalizer lsLocalizer = new LightLocalizer(leftMotor, rightMotor, odometer);
 		
 		SensorModes usSensor = new EV3UltrasonicSensor(usPort); // usSensor is the instance
 	    SampleProvider usDistance = usSensor.getMode("Distance"); // usDistance provides samples from
@@ -39,6 +40,9 @@ public class Lab4 {
 		
 		leftMotor.setSpeed(ROTATE_SPEED);
 		rightMotor.setSpeed(ROTATE_SPEED);
+		
+		leftMotor.setAcceleration(ACCELERATION);
+		rightMotor.setAcceleration(ACCELERATION);
 
 		do {
 			// clear the display
@@ -95,6 +99,17 @@ public class Lab4 {
 
 		}
 
+		Button.waitForAnyPress();
+		
+		try {
+			Thread.sleep(1000);
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+		
+		Thread lsLocalThread = new Thread(lsLocalizer);
+		lsLocalThread.start();
+		
 		while (Button.waitForAnyPress() != Button.ID_ESCAPE) ;
 		System.exit(0);
 	}
