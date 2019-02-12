@@ -18,7 +18,8 @@ public class Lab4 {
 	
 	private static final TextLCD lcd = LocalEV3.get().getTextLCD();
 	public static final double WHEEL_RAD = 2.2; // 2.2
-	public static final double TRACK = 12.6; // 
+	public static final double TRACK = 12.55; 
+	public static final double TILE_LENGTH = 30.48;
 	public static final int ROTATE_SPEED = 60;
 	public static final int ACCELERATION = 1000;
 

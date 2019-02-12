@@ -13,9 +13,9 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 	private double theta1;
 	private double theta2;
 
+	private static final int FILTER_VAL = 1;
 	private static final int D_FALLING = 20;
 	private static final int D_RISING = 32;
-	private static final int K = 0;
 
 	public UltrasonicLocalizer(EV3LargeRegulatedMotor leftMotor, EV3LargeRegulatedMotor rightMotor, Odometer odometer) {
 		this.leftMotor = leftMotor;
@@ -23,6 +23,9 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 		this.odometer = odometer;
 	}
 	
+	/**
+	 * Method that runs the ultrasonic localization routine.
+	 */
 	@Override
 	public void run() {
 		if (flag) {
@@ -33,109 +36,106 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 		
 	}
 	
+	/**
+	 * Method that rotates the robot to the left and then to the right to detect both falling 
+	 * edges before computing the new theta value and rotating the robot to a heading
+	 * of 0 degrees.
+	 */
 	private void fallingEdge() {
 		// turn left until falling edge is detected
 		leftMotor.rotate(-convertAngle(Lab4.WHEEL_RAD, Lab4.TRACK, 360.0), true);
 		rightMotor.rotate(convertAngle(Lab4.WHEEL_RAD, Lab4.TRACK, 360.0), true);
 		
-		while (isNavigating()) {
-//			if (this.distance < D+K) {
-//				System.out.println(this.distance);
-//				this.theta1 = odometer.getXYT()[2];
-//				continue;
-//			} 
-			if (this.distance < D_FALLING-K) {
-				//System.out.println(this.distance);
-				leftMotor.stop(true);
-				rightMotor.stop(false);
-				Sound.beep();
-				this.alpha = odometer.getXYT()[2];
-			}
-		}
+		this.alpha = detectFallingEdge();
 		
 		leftMotor.rotate(convertAngle(Lab4.WHEEL_RAD, Lab4.TRACK, 360.0), true);
 		rightMotor.rotate(-convertAngle(Lab4.WHEEL_RAD, Lab4.TRACK, 360.0), true);
 		
 		try {
-			Thread.sleep(500);
+			Thread.sleep(1500);
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
+			
 		}
 		
-		while (isNavigating()) {
-//			if (this.distance < D+K) {
-//				System.out.println(this.distance);
-//				this.theta1 = odometer.getXYT()[2];
-//				continue;
-//			} 
-			if (this.distance < D_FALLING-K) {
-				//System.out.println(this.distance);
-				leftMotor.stop(true);
-				rightMotor.stop(false);
-				Sound.beep();
-				this.beta = odometer.getXYT()[2];
-			}
-		}
+		this.beta = detectFallingEdge();
+
 		
 		double dTheta = 225-(alpha+beta)/2;
 		double theta = odometer.getXYT()[2];
 		odometer.setTheta(theta+dTheta);
-		
-		
-		
+	
 		turnTo(-Math.toRadians(odometer.getXYT()[2]));
 		
 	}
+	/**
+	 * Method to detect a falling edge distance while rotating. Returns the angle at which the 
+	 * falling edge is detected.
+	 * @return
+	 */
+	private double detectFallingEdge() {
+		int filterCount = 0;
+		while (isNavigating()) {
+			if (this.distance < D_FALLING && filterCount > FILTER_VAL) {
+				leftMotor.stop(true);
+				rightMotor.stop(false);
+				Sound.beep();
+				return odometer.getXYT()[2];
+			} else if (this.distance < D_FALLING) {
+				filterCount++;
+			}
+		}
+		
+		return odometer.getXYT()[2];
+	}
 	
+	/**
+	 * Method that rotates the robot to the left and then to the right to detect both rising 
+	 * edges before computing the new theta value and rotating the robot to a heading
+	 * of 0 degrees.
+	 */
 	private void risingEdge() {
 		// turn left until rising edge is detected
 		leftMotor.rotate(-convertAngle(Lab4.WHEEL_RAD, Lab4.TRACK, 360.0), true);
 		rightMotor.rotate(convertAngle(Lab4.WHEEL_RAD, Lab4.TRACK, 360.0), true);
-
-		while (isNavigating()) {
-//					if (this.distance < D+K) {
-//						System.out.println(this.distance);
-//						this.theta1 = odometer.getXYT()[2];
-//						continue;
-//					} 
-			if (this.distance > D_RISING - K) {
-			//	System.out.println(this.distance);
-				leftMotor.stop(true);
-				rightMotor.stop(false);
-				Sound.beep();
-				this.alpha = odometer.getXYT()[2];
-			}
-		}
-
+		
+		this.alpha = detectRisingEdge();
+		
 		leftMotor.rotate(convertAngle(Lab4.WHEEL_RAD, Lab4.TRACK, 360.0), true);
 		rightMotor.rotate(-convertAngle(Lab4.WHEEL_RAD, Lab4.TRACK, 360.0), true);
-
+		
 		try {
-			Thread.sleep(500);
+			Thread.sleep(1500);
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
+			
 		}
-
-		while (isNavigating()) {
-//					if (this.distance < D+K) {
-//						System.out.println(this.distance);
-//						this.theta1 = odometer.getXYT()[2];
-//						continue;
-//					} 
-			if (this.distance > D_RISING - K) {
-				//System.out.println(this.distance);
-				leftMotor.stop(true);
-				rightMotor.stop(false);
-				Sound.beep();
-				this.beta = odometer.getXYT()[2];
-			}
-		}
+		
+		this.beta = detectRisingEdge();
 
 		double dTheta = 45 - (alpha + beta) / 2;
 		double theta = odometer.getXYT()[2];
 		odometer.setTheta(theta + dTheta);
 
 		turnTo(-Math.toRadians(odometer.getXYT()[2]));
+	}
+	
+	/**
+	 * Method to detect a rising edge distance while rotating. Returns the angle at which the 
+	 * rising edge is detected.
+	 * @return
+	 */
+	private double detectRisingEdge() {
+		int filterCount = 0;
+		while (isNavigating()) {
+			if (this.distance > D_RISING && filterCount > FILTER_VAL) {
+				leftMotor.stop(true);
+				rightMotor.stop(false);
+				Sound.beep();
+				return odometer.getXYT()[2];
+			} else if (this.distance > D_RISING) {
+				filterCount++;
+			}
+		}
+		return odometer.getXYT()[2];
 	}
 	
 	/**
@@ -146,7 +146,7 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 	 * 
 	 * @param theta
 	 */
-	public void turnTo(double theta) {
+	public static void turnTo(double theta) {
 		// Keep the angle within the period of -pi to pi
 		if (theta <= -Math.PI) {
 			theta += 2 * Math.PI;
@@ -167,16 +167,29 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 		
 	}
 	
+	
+	/**
+	 * Sets the distance value to that which is read by the US sensor.
+	 */
 	@Override
 	public void processUSData(int distance) {
 		this.distance = distance;
 	}
 
+	/**
+	 * Returns most recent US sensor distance reading.
+	 * @return
+	 */
 	@Override
 	public int readUSDistance() {
 		return this.distance;
 	}
 	
+	/**
+	 * Sets the flag which is used to determine whether to use rising edge (true)
+	 * or falling edge (false).
+	 * @param flag
+	 */
 	public void setFlag(boolean flag) {
 		this.flag = flag;
 	}
@@ -201,7 +214,7 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 	   * @param distance
 	   * @return
 	   */
-	private static int convertDistance(double radius, double distance) {
+	public static int convertDistance(double radius, double distance) {
 		return (int) ((180.0 * distance) / (Math.PI * radius));
 	}
 
@@ -213,7 +226,7 @@ public class UltrasonicLocalizer implements Runnable, UltrasonicController {
 	 * @param angle
 	 * @return
 	 */
-	private static int convertAngle(double radius, double width, double angle) {
+	public static int convertAngle(double radius, double width, double angle) {
 		return convertDistance(radius, Math.PI * width * angle / 360.0);
 	}
 
